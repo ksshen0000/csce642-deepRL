@@ -112,25 +112,26 @@ class PolicyIteration(AbstractSolver):
         ################################
         #   YOUR IMPLEMENTATION HERE   #
         ################################
-        theta = 1e-8  # 阈值，决定状态值更新的收敛条件
-        while True:
-            delta = 0
-            for s in range(self.env.observation_space.n):
-                # 获取当前策略的动作
-                a = np.argmax(self.policy[s])
+        num_states = self.env.observation_space.n
+        num_actions = self.env.action_space.n
+        gamma = self.options.gamma
 
-                # 计算该状态下动作的期望值
-                v = 0
-                for prob, next_state, reward, done in self.env.P[s][a]:
-                    v += prob * (reward + self.options.gamma * self.V[next_state])
+        # Initialize transition matrix P_pi and reward vector R_pi
+        P_pi = np.zeros((num_states, num_states))  # Transition matrix for the policy
+        R_pi = np.zeros(num_states)  # Reward vector for the policy
 
-                # 更新状态值，并计算变化量
-                delta = max(delta, abs(self.V[s] - v))
-                self.V[s] = v
+        # Construct P_pi and R_pi from the environment dynamics and current policy
+        for s in range(num_states):
+            # Get the action chosen by the current policy at state s
+            a = np.argmax(self.policy[s])
+            
+            for prob, next_state, reward, done in self.env.P[s][a]:
+                P_pi[s, next_state] += prob
+                R_pi[s] += prob * reward
 
-            # 如果所有状态的变化都小于阈值，退出循环
-            if delta < theta:
-                break
+        # Solve the system of linear equations: V = (I - γ * P_pi)^(-1) * R_pi
+        A = np.eye(num_states) - gamma * P_pi  # (I - γ * P_pi)
+        self.V = np.linalg.solve(A, R_pi)  # Solve for V
 
     def create_greedy_policy(self):
         """
