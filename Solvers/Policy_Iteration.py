@@ -57,6 +57,15 @@ class PolicyIteration(AbstractSolver):
             ################################
             #   YOUR IMPLEMENTATION HERE   #
             ################################
+            old_action = np.argmax(self.policy[s])
+
+            action_values = self.one_step_lookahead(s)
+            best_action = np.argmax(action_values)
+
+            # if old_action != best_action:
+            #     policy_stable = False
+
+            self.policy[s] = np.eye(self.env.action_space.n)[best_action]
 
 
         # In DP methods we don't interact with the environment so we will set the reward to be the sum of state values
@@ -103,6 +112,25 @@ class PolicyIteration(AbstractSolver):
         ################################
         #   YOUR IMPLEMENTATION HERE   #
         ################################
+        theta = 1e-8  # 阈值，决定状态值更新的收敛条件
+        while True:
+            delta = 0
+            for s in range(self.env.observation_space.n):
+                # 获取当前策略的动作
+                a = np.argmax(self.policy[s])
+
+                # 计算该状态下动作的期望值
+                v = 0
+                for prob, next_state, reward, done in self.env.P[s][a]:
+                    v += prob * (reward + self.options.gamma * self.V[next_state])
+
+                # 更新状态值，并计算变化量
+                delta = max(delta, abs(self.V[s] - v))
+                self.V[s] = v
+
+            # 如果所有状态的变化都小于阈值，退出循环
+            if delta < theta:
+                break
 
     def create_greedy_policy(self):
         """

@@ -71,6 +71,9 @@ class ValueIteration(AbstractSolver):
             ################################
             #   YOUR IMPLEMENTATION HERE   #
             ################################
+            action_values = self.one_step_lookahead(each_state)
+            # update the value of the state to the maximum value of the actions
+            self.V[each_state] = np.max(action_values)
 
         # Dont worry about this part
         self.statistics[Statistics.Rewards.value] = np.sum(self.V)
@@ -140,6 +143,9 @@ class ValueIteration(AbstractSolver):
             ################################
             #   YOUR IMPLEMENTATION HERE   #
             ################################
+            action_values = self.one_step_lookahead(state)
+            # return the action with the highest value
+            return np.argmax(action_values)
             
 
         return policy_fn
@@ -192,6 +198,26 @@ class AsynchVI(ValueIteration):
         # Do a one-step lookahead to find the best action       #
         # Update the value function. Ref: Sutton book eq. 4.10. #
         #########################################################
+        if not self.pq.isEmpty():
+            # pop the state with the highest priority
+            state = self.pq.pop()
+
+            # calculate the best action value
+            A = self.one_step_lookahead(state)
+            best_action_value = np.max(A)
+
+            # update the value of the state
+            delta = abs(self.V[state] - best_action_value)
+            self.V[state] = best_action_value
+
+            # update the priority of the predecessors
+            if state in self.pred:
+                for pred_state in self.pred[state]:
+                    A = self.one_step_lookahead(pred_state)
+                    best_action_value = np.max(A)
+                
+                    self.pq.update(pred_state, -abs(self.V[pred_state] - best_action_value))
+
 
         # you can ignore this part
         self.statistics[Statistics.Rewards.value] = np.sum(self.V)
