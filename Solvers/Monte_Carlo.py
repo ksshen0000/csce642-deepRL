@@ -65,6 +65,35 @@ class MonteCarlo(AbstractSolver):
         ################################
         #   YOUR IMPLEMENTATION HERE   #
         ################################
+        
+        # Generate an episode
+        for t in range(self.options.steps):
+            action_probs = self.policy(state)
+            # Choose action
+            action = np.random.choice(np.arange(len(action_probs)), p=action_probs)
+            
+            # Take a step
+            next_state, reward, done, _ = self.step(action)
+            
+            # Store the transition
+            episode.append((state, action, reward))
+            
+            if done:
+                break
+            state = next_state
+        
+        # Go through the episode in reverse order
+        G = 0
+        visited = set()
+        for state, action, reward in reversed(episode):
+            G = reward + discount_factor * G
+            if (state, action) not in visited:
+                visited.add((state, action))
+                self.returns_sum[(state, action)] += G
+                self.returns_count[(state, action)] += 1
+                # Update Q-value to be the average return
+                self.Q[state][action] = self.returns_sum[(state, action)] / self.returns_count[(state, action)]
+
 
     def __str__(self):
         return "Monte Carlo"
@@ -90,6 +119,13 @@ class MonteCarlo(AbstractSolver):
             ################################
             #   YOUR IMPLEMENTATION HERE   #
             ################################
+            
+            # Initialize the action probabilities
+            A = np.ones(nA, dtype=float) * self.options.epsilon / nA
+            best_action = np.argmax(self.Q[observation])
+            # Update the action probabilities for the best action
+            A[best_action] += (1.0 - self.options.epsilon)
+            return A
 
         return policy_fn
 
@@ -109,6 +145,7 @@ class MonteCarlo(AbstractSolver):
             ################################
             #   YOUR IMPLEMENTATION HERE   #
             ################################
+            return np.argmax(self.Q[state])
 
 
         return policy_fn
@@ -163,6 +200,39 @@ class OffPolicyMC(MonteCarlo):
         ################################
         #   YOUR IMPLEMENTATION HERE   #
         ################################
+        # Generate an episode
+        for t in range(self.options.steps):
+            action_probs = self.behavior_policy(state)
+            action = np.random.choice(np.arange(len(action_probs)), p=action_probs)
+            next_state, reward, done, _ = self.step(action)
+
+            episode.append((state, action, reward))
+
+            if done:
+                break
+            state = next_state
+
+        G = 0
+        W = 1.0
+        for state, action, reward in reversed(episode):
+            G = reward + self.options.gamma * G
+
+            self.C[state][action] += W
+            self.Q[state][action] += (W / self.C[state][action]) * (G - self.Q[state][action])
+
+            # Get greedy action from target policy
+            target_action = self.target_policy(state)
+
+            # If the action taken is not the greedy action, break
+            if action != target_action:
+                break
+
+            # Since target policy is deterministic, pi_prob is 1 if actions match
+            pi_prob = 1.0
+            b_prob = self.behavior_policy(state)[action]
+
+            # Update W
+            W *= pi_prob / b_prob
         
 
     def create_random_policy(self):
