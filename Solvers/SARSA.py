@@ -94,20 +94,19 @@ class Sarsa(AbstractSolver):
         ################################
         #   YOUR IMPLEMENTATION HERE   #
         ################################
-        A = []
+        As = []
+        
+        greedy_action = np.argmax(self.Q[state])
 
-        AStar = self.create_greedy_policy()(state)
-        epsilon = self.options.epsilon
-        num_actions = self.env.action_space.n
-        for a in range(num_actions):
+        for a in range(self.env.action_space.n):
             # If the action is the greedy action
-            if a == AStar:
-                A.append(1 - epsilon + epsilon / num_actions)
+            if a == greedy_action:
+                As.append(1 - self.options.epsilon + self.options.epsilon / self.env.action_space.n)
             else:
                 # If the action is not the greedy action
-                A.append(epsilon / num_actions)
-        
-        return A
+                As.append(self.options.epsilon / self.env.action_space.n)
+
+        return As
 
     def plot(self, stats, smoothing_window=20, final=False):
         plotting.plot_episode_stats(stats, smoothing_window, final=final)

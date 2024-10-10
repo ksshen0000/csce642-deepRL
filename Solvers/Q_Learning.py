@@ -105,21 +105,21 @@ class QLearning(AbstractSolver):
         ################################
         #   YOUR IMPLEMENTATION HERE   #
         ################################
-        A = []
+        As = []
+  
         # Get the greedy action
-        AStar = self.create_greedy_policy()(state)
-        epsilon = self.options.epsilon
-        num_actions = self.env.action_space.n
+        greedy_action = np.argmax(self.Q[state])
+        
         # Calculate the probability of taking each action
-        for a in range(num_actions):
-            if a == AStar:
+        for a in range(self.env.action_space.n):
+            if a == greedy_action:
                 # Probability of taking the greedy action
-                A.append(1 - epsilon + epsilon / num_actions)
+                As.append(1 - self.options.epsilon + self.options.epsilon / self.env.action_space.n)
             else:
                 # Probability of taking the non-greedy action
-                A.append(epsilon / num_actions)
+                As.append(self.options.epsilon / self.env.action_space.n)
 
-        return A
+        return As
 
 
 class ApproxQLearning(QLearning):
