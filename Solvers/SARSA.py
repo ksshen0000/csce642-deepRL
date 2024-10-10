@@ -47,6 +47,30 @@ class Sarsa(AbstractSolver):
         ################################
         #   YOUR IMPLEMENTATION HERE   #
         ################################
+        
+        action = self.epsilon_greedy_action(state)
+        # print("action", action)
+        for t in range(self.options.steps):
+            # Take action A, observe R, S'
+            next_state, reward, terminated, truncated, _ = self.env.step(action)
+            # print(action,state)
+
+            # Choose next action A' using policy derived from Q (epsilon-greedy)
+            next_action = self.epsilon_greedy_action(next_state)
+
+            # Update Q(s,a)
+            if terminated or truncated:
+                td_target = reward
+            else:
+                td_target = reward + self.options.gamma * self.Q[next_state][next_action]
+            td_delta = td_target - self.Q[state][action]
+            self.Q[state][action] += self.options.alpha * td_delta
+
+            if terminated or truncated:
+                break
+
+            state = next_state
+            action = next_action
 
     def __str__(self):
         return "Sarsa"
@@ -63,6 +87,7 @@ class Sarsa(AbstractSolver):
             ################################
             #   YOUR IMPLEMENTATION HERE   #
             ################################
+            return np.argmax(self.Q[state])
 
         return policy_fn
 
@@ -80,6 +105,11 @@ class Sarsa(AbstractSolver):
         ################################
         #   YOUR IMPLEMENTATION HERE   #
         ################################
+        if np.random.rand() < self.options.epsilon:
+            return self.env.action_space.sample()
+        else:
+            max_actions = np.flatnonzero(self.Q[state] == self.Q[state].max())
+            return np.random.choice(max_actions)
 
     def plot(self, stats, smoothing_window=20, final=False):
         plotting.plot_episode_stats(stats, smoothing_window, final=final)

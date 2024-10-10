@@ -70,13 +70,15 @@ class MonteCarlo(AbstractSolver):
         for t in range(self.options.steps):
             action_probs = self.policy(state)
             # Choose action
-            action = np.random.choice(np.arange(len(action_probs)), p=action_probs)
-            
+            # np.arange(len(action_probs)) creates an array of indices from 0 to len(action_probs)
+            possible_actions = np.arange(len(action_probs))
+            # np.random.choice selects an index with probability action_probs
+            action = np.random.choice(possible_actions, p=action_probs)
             # Take a step
             next_state, reward, done, _ = self.step(action)
             
             # Store the transition
-            episode.append((state, action, reward))
+            episode.append((state, action, reward,next_state))
             
             if done:
                 break
@@ -85,7 +87,7 @@ class MonteCarlo(AbstractSolver):
         # Go through the episode in reverse order
         G = 0
         visited = set()
-        for state, action, reward in reversed(episode):
+        for state, action, reward, _ in reversed(episode):
             G = reward + discount_factor * G
             if (state, action) not in visited:
                 visited.add((state, action))
@@ -145,6 +147,8 @@ class MonteCarlo(AbstractSolver):
             ################################
             #   YOUR IMPLEMENTATION HERE   #
             ################################
+            
+            # Return the action with the highest Q-value
             return np.argmax(self.Q[state])
 
 
@@ -206,7 +210,7 @@ class OffPolicyMC(MonteCarlo):
             action = np.random.choice(np.arange(len(action_probs)), p=action_probs)
             next_state, reward, done, _ = self.step(action)
 
-            episode.append((state, action, reward))
+            episode.append((state, action, reward, next_state))
 
             if done:
                 break
@@ -214,21 +218,21 @@ class OffPolicyMC(MonteCarlo):
 
         G = 0
         W = 1.0
-        for state, action, reward in reversed(episode):
+        for state, action, reward, _ in reversed(episode):
             G = reward + self.options.gamma * G
-
             self.C[state][action] += W
             self.Q[state][action] += (W / self.C[state][action]) * (G - self.Q[state][action])
 
-            # Get greedy action from target policy
+            # Get greedy action
             target_action = self.target_policy(state)
 
             # If the action taken is not the greedy action, break
             if action != target_action:
                 break
 
-            # Since target policy is deterministic, pi_prob is 1 if actions match
+            # Since target policy is deterministic, pi_prob is 1 if action == target_action
             pi_prob = 1.0
+            # b_prob is the probability of taking the action under the behavior policy
             b_prob = self.behavior_policy(state)[action]
 
             # Update W

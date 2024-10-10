@@ -54,6 +54,25 @@ class QLearning(AbstractSolver):
         ################################
         #   YOUR IMPLEMENTATION HERE   #
         ################################
+        for step in range(self.options.steps):
+            # Select an action using an epsilon-greedy policy
+            action = self.epsilon_greedy_action(state)
+            
+            # Take a step in the environment
+            next_state, reward, done, _ = self.step(action)
+
+            # Q-Learning update
+            best_next_action = np.argmax(self.Q[next_state])  # best action at next state
+            td_target = reward + self.options.gamma * self.Q[next_state][best_next_action]  # TD target
+            td_delta = td_target - self.Q[state][action]  # TD error
+            self.Q[state][action] += self.options.alpha * td_delta  # Update Q-value
+            
+            # Transition to the next state
+            state = next_state
+
+            if done:
+                break
+
 
     def __str__(self):
         return "Q-Learning"
@@ -75,6 +94,7 @@ class QLearning(AbstractSolver):
             ################################
             #   YOUR IMPLEMENTATION HERE   #
             ################################
+            return np.argmax(self.Q[state])
 
         return policy_fn
 
@@ -92,6 +112,15 @@ class QLearning(AbstractSolver):
         ################################
         #   YOUR IMPLEMENTATION HERE   #
         ################################
+        epsilon = self.options.epsilon
+        num_actions = self.env.action_space.n
+
+        if np.random.rand() < epsilon:
+            # Choose a random action with probability epsilon
+            return np.random.choice(num_actions)
+        else:
+            # Choose the action with the highest Q-value with probability 1 - epsilon
+            return np.argmax(self.Q[state])
 
 
 class ApproxQLearning(QLearning):
@@ -154,7 +183,7 @@ class ApproxQLearning(QLearning):
             ################################
             #   YOUR IMPLEMENTATION HERE   #
             ################################
-            
+            pass
 
         return policy_fn
 
