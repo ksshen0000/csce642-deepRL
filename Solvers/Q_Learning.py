@@ -56,16 +56,14 @@ class QLearning(AbstractSolver):
         ################################
         for step in range(self.options.steps):
             # Select an action using an epsilon-greedy policy
-            action = self.epsilon_greedy_action(state)
-            
-            # Take a step in the environment
+            action = np.argmax(self.epsilon_greedy_action(state))
             next_state, reward, done, _ = self.step(action)
 
-            # Q-Learning update
-            best_next_action = np.argmax(self.Q[next_state])  # best action at next state
-            td_target = reward + self.options.gamma * self.Q[next_state][best_next_action]  # TD target
-            td_delta = td_target - self.Q[state][action]  # TD error
-            self.Q[state][action] += self.options.alpha * td_delta  # Update Q-value
+            self.Q[state][action] += self.options.alpha * (
+                reward
+                + self.options.gamma * np.max(self.Q[next_state])
+                - self.Q[state][action]
+            )
             
             # Transition to the next state
             state = next_state
@@ -112,15 +110,18 @@ class QLearning(AbstractSolver):
         ################################
         #   YOUR IMPLEMENTATION HERE   #
         ################################
+        A = []
+
+        AStar = self.create_greedy_policy()(state)
         epsilon = self.options.epsilon
         num_actions = self.env.action_space.n
+        for a in range(num_actions):
+            if a == AStar:
+                A.append(1 - epsilon + epsilon / num_actions)
+            else:
+                A.append(epsilon / num_actions)
 
-        if np.random.rand() < epsilon:
-            # Choose a random action with probability epsilon
-            return np.random.choice(num_actions)
-        else:
-            # Choose the action with the highest Q-value with probability 1 - epsilon
-            return np.argmax(self.Q[state])
+        return A
 
 
 class ApproxQLearning(QLearning):
