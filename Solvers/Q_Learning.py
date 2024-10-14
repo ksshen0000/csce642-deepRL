@@ -179,8 +179,8 @@ class ApproxQLearning(QLearning):
         ################################
         A = []
         AStar = np.argmax(self.estimator.predict(state))
-        for a in range(self.env.action_space.n):
-            if a == AStar:
+        for action in range(self.env.action_space.n):
+            if action == AStar:
                 A.append(1 - self.options.epsilon + self.options.epsilon / self.env.action_space.n)
             else:
                 A.append(self.options.epsilon / self.env.action_space.n)
